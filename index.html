@@ -59,6 +59,12 @@
       <div id="calibrate-status">位置を確認中...</div>
       <div id="calibrate-countdown" class="hidden"></div>
 
+      <div class="calibrate-hint">
+        <p>📐 キャリブレーション後、カメラ画面に<br />
+        <strong>「ここまで下げる」</strong>というラインが表示されます。<br />
+        そのラインを腰で越えるのがスクワット判定の目安です。</p>
+      </div>
+
     </div>
   </div>
 
@@ -90,6 +96,11 @@
           <div class="stat">
             <span class="stat-label">発見数</span>
             <span id="item-count" class="stat-value">0</span>
+          </div>
+          <!-- スクワット中の深度リアルタイム表示 -->
+          <div class="stat stat-squat-depth" id="stat-squat-depth-wrap">
+            <span class="stat-label">腰の深度</span>
+            <span id="squat-depth-pct" class="stat-value stat-value-small">—</span>
           </div>
         </div>
       </div>

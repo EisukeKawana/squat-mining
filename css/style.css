@@ -181,6 +181,24 @@ button:disabled { opacity: 0.4; cursor: default; }
   animation: pulse 1s ease-in-out infinite;
 }
 
+.calibrate-hint {
+  background: rgba(244, 169, 39, 0.08);
+  border: 1px solid rgba(244, 169, 39, 0.25);
+  border-radius: 10px;
+  padding: 14px 18px;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+}
+
+.calibrate-hint p {
+  color: var(--text-sub);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.calibrate-hint strong { color: var(--accent); }
+
 /* ================================================================
    ゲーム画面
    ================================================================ */
@@ -212,13 +230,24 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.camera-container video,
-.camera-container canvas {
+.camera-container video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* フロントカメラは左右ミラー表示にする */
+  transform: scaleX(-1);
+}
+
+.camera-container canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* 骨格オーバーレイはJSが描画するため object-fit は不要 */
+  /* ミラーに合わせて反転 */
+  transform: scaleX(-1);
 }
 
 #squat-indicator {
@@ -242,6 +271,17 @@ button:disabled { opacity: 0.4; cursor: default; }
   0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
   100% { opacity: 0; transform: translate(-50%, -70%) scale(0.8); }
 }
+
+/* 腰の深度リアルタイム表示 */
+.stat-value-small { font-size: 1.2rem; }
+
+.stat-squat-depth { min-width: 60px; }
+
+/* 深度が高くなるほど色が変わる（JSで動的に変更） */
+#squat-depth-pct[data-level="low"]    { color: var(--text-sub); }
+#squat-depth-pct[data-level="mid"]    { color: var(--accent); }
+#squat-depth-pct[data-level="high"]   { color: #FF9500; }
+#squat-depth-pct[data-level="done"]   { color: var(--accent2); }
 
 .game-stats {
   display: flex;

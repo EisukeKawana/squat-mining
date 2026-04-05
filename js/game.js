@@ -170,38 +170,66 @@ class Game {
     this.detector.state = "standing";
 
     // ゲーム画面のビデオに同じストリームを使う
-    const videoGame = document.getElementById("video-game");
+    const videoGame  = document.getElementById("video-game");
+    const canvasGame = document.getElementById("canvas-game");
     videoGame.srcObject = this.stream;
     videoGame.play();
 
+    // 動画メタが読み込まれたらキャンバスサイズを合わせる
+    // （processFrame 内でも毎フレーム確認するが、初期化として明示的に実行）
     videoGame.onloadedmetadata = () => {
-      const c = document.getElementById("canvas-game");
-      c.width = videoGame.videoWidth;
-      c.height = videoGame.videoHeight;
+      canvasGame.width  = videoGame.videoWidth;
+      canvasGame.height = videoGame.videoHeight;
     };
 
-    // Mine キャンバス初期化
-    this.mineCanvas = document.getElementById("canvas-mine");
-    this.mineCtx = this.mineCanvas.getContext("2d");
-    this.mineCanvas.width = this.mineCanvas.offsetWidth || 300;
-    this.mineCanvas.height = this.mineCanvas.offsetHeight || 500;
-
-    // スクワットのコールバック登録
-    this.detector.onSquat = (count) => this._onSquat(count);
-    this.detector.onPoseUpdate = null; // キャリブレーション用を外す
-
+    // Mine キャンバス初期化（表示後にサイズを取得するため requestAnimationFrame で遅延）
     this._showScreen("game");
     this._updateStats();
-    this._drawMine();
+
+    requestAnimationFrame(() => {
+      this.mineCanvas = document.getElementById("canvas-mine");
+      this.mineCtx    = this.mineCanvas.getContext("2d");
+      // offsetWidth/Height はレイアウト後に確定する
+      this.mineCanvas.width  = this.mineCanvas.offsetWidth  || 300;
+      this.mineCanvas.height = this.mineCanvas.offsetHeight || 500;
+      this._drawMine();
+    });
+
+    // スクワットのコールバック登録
+    this.detector.onSquat      = (count) => this._onSquat(count);
+    this.detector.onPoseUpdate = null; // キャリブレーション用を外す
 
     // ゲームループ
-    this._gameLoop(videoGame);
+    this._gameLoop(videoGame, canvasGame);
   }
 
-  _gameLoop(video) {
-    this.detector.processFrame(video, document.getElementById("canvas-game"));
+  _gameLoop(video, canvas) {
+    // 骨格オーバーレイ + スクワット判定
+    this.detector.processFrame(video, canvas);
+    // 採掘ビジュアル
     this._drawMine();
-    this.animFrame = requestAnimationFrame(() => this._gameLoop(video));
+    // スクワット深度 % をステータスバーにリアルタイム反映
+    this._updateSquatDepthUI();
+    this.animFrame = requestAnimationFrame(() => this._gameLoop(video, canvas));
+  }
+
+  /** スクワット深度をリアルタイムでステータスバーに表示 */
+  _updateSquatDepthUI() {
+    const el = document.getElementById("squat-depth-pct");
+    if (!el || !this.detector.calibrated) return;
+
+    const ratio    = this.detector.lastDropRatio;
+    const threshold = this.detector.SQUAT_DOWN_THRESHOLD;
+    const progress  = Math.max(0, Math.min(1, ratio / threshold));
+    const pct       = Math.round(progress * 100);
+
+    if (this.detector.state === "squatting") {
+      el.textContent      = "✓ OK!";
+      el.dataset.level    = "done";
+    } else {
+      el.textContent      = `${pct}%`;
+      el.dataset.level    = pct >= 85 ? "high" : pct >= 40 ? "mid" : "low";
+    }
   }
 
   // ──────────────────────────────────────────────
