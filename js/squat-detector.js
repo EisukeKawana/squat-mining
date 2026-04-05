@@ -33,6 +33,7 @@ export class SquatDetector {
   constructor() {
     this.poseLandmarker = null;
     this.drawingUtils  = null;
+    this._overlayCtx   = null; // DrawingUtils が紐付いている ctx を記憶
     this.running       = false;
     this.lastVideoTime = -1;
 
@@ -106,10 +107,28 @@ export class SquatDetector {
    */
   processFrame(video, overlayCanvas = null) {
     if (!this.poseLandmarker || !this.running) return;
+
+    // 動画がまだ準備できていない場合はスキップ
+    if (video.readyState < 2) return;
+
+    // 同一フレームの二重処理を防ぐ
     if (video.currentTime === this.lastVideoTime) return;
     this.lastVideoTime = video.currentTime;
 
-    const result = this.poseLandmarker.detectForVideo(video, performance.now());
+    // キャンバスサイズを動画に合わせる（videoWidth が確定してから・0 にしない）
+    if (overlayCanvas && video.videoWidth > 0) {
+      if (overlayCanvas.width !== video.videoWidth || overlayCanvas.height !== video.videoHeight) {
+        overlayCanvas.width  = video.videoWidth;
+        overlayCanvas.height = video.videoHeight;
+      }
+    }
+
+    let result;
+    try {
+      result = this.poseLandmarker.detectForVideo(video, performance.now());
+    } catch {
+      return;
+    }
 
     if (result.landmarks && result.landmarks.length > 0) {
       const landmarks = result.landmarks[0];
@@ -119,11 +138,6 @@ export class SquatDetector {
       }
 
       if (overlayCanvas) {
-        // キャンバスサイズを動画に合わせる（初回のみ）
-        if (overlayCanvas.width !== video.videoWidth) {
-          overlayCanvas.width  = video.videoWidth;
-          overlayCanvas.height = video.videoHeight;
-        }
         this._drawOverlay(overlayCanvas, result);
       }
 
@@ -131,7 +145,6 @@ export class SquatDetector {
         this.onPoseUpdate(landmarks);
       }
     } else {
-      // ポーズが検出されなかった場合もオーバーレイをクリアして「映ってない」表示
       if (overlayCanvas) {
         this._drawNopose(overlayCanvas);
       }
@@ -175,10 +188,14 @@ export class SquatDetector {
     const ctx = canvas.getContext("2d");
     const W   = canvas.width;
     const H   = canvas.height;
+    if (W === 0 || H === 0) return;
     ctx.clearRect(0, 0, W, H);
 
-    if (!this.drawingUtils) {
+    // DrawingUtils はキャンバスの ctx に紐付くため、
+    // キャンバスが切り替わったら（キャリブレーション→ゲーム等）必ず再作成する
+    if (!this.drawingUtils || this._overlayCtx !== ctx) {
       this.drawingUtils = new DrawingUtils(ctx);
+      this._overlayCtx  = ctx;
     }
 
     // ── 1. 骨格（常時表示）──
@@ -319,6 +336,7 @@ export class SquatDetector {
     const ctx = canvas.getContext("2d");
     const W   = canvas.width;
     const H   = canvas.height;
+    if (W === 0 || H === 0) return;
     ctx.clearRect(0, 0, W, H);
 
     ctx.save();
