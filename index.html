@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⛏️ スクワット採掘</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════
+       開始画面
+  ════════════════════════════════════ -->
+  <div id="screen-start" class="screen active">
+    <div class="start-content">
+
+      <div class="title-area">
+        <div class="title-icon">⛏️</div>
+        <h1 class="title">スクワット採掘</h1>
+        <p class="subtitle">SQUAT MINING</p>
+      </div>
+
+      <div class="instructions">
+        <h2>遊び方</h2>
+        <ol>
+          <li>カメラに全身が映るように立つ</li>
+          <li>スクワット 1回 → 地面を 1m 掘れる</li>
+          <li>深く掘るほど貴重なアイテムが出る</li>
+          <li>深さ 50m を目指せ！</li>
+        </ol>
+      </div>
+
+      <button id="btn-start" class="btn-primary">📷 カメラを許可してスタート</button>
+      <button id="btn-ranking" class="btn-secondary">🏆 ランキングを見る</button>
+
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════
+       キャリブレーション画面
+  ════════════════════════════════════ -->
+  <div id="screen-calibrate" class="screen">
+    <div class="calibrate-content">
+
+      <h2>キャリブレーション</h2>
+      <p>カメラに全身が映るように<br />まっすぐ立ってください</p>
+
+      <div class="camera-preview-container">
+        <video id="video-calibrate" autoplay playsinline muted></video>
+        <canvas id="canvas-calibrate"></canvas>
+      </div>
+
+      <div id="calibrate-status">位置を確認中...</div>
+      <div id="calibrate-countdown" class="hidden"></div>
+
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════
+       ゲーム画面
+  ════════════════════════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <div class="game-layout">
+
+      <!-- 左：カメラ映像 + スタッツ -->
+      <div class="game-left">
+        <div class="camera-container">
+          <video id="video-game" autoplay playsinline muted></video>
+          <canvas id="canvas-game"></canvas>
+          <div id="squat-indicator" class="hidden">スクワット！</div>
+        </div>
+
+        <div class="game-stats">
+          <div class="stat">
+            <span class="stat-label">スクワット</span>
+            <span id="squat-count" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">深さ</span>
+            <span id="depth-display" class="stat-value">0m</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">発見数</span>
+            <span id="item-count" class="stat-value">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右：採掘ビジュアル -->
+      <div class="game-right">
+        <div class="mine-container">
+
+          <div class="mine-header">
+            <h3>採掘中...</h3>
+            <div id="mine-depth-label">深さ 0m</div>
+          </div>
+
+          <!-- 採掘断面図キャンバス -->
+          <div class="mine-shaft">
+            <canvas id="canvas-mine"></canvas>
+          </div>
+
+          <!-- 深さゲージ（縦） -->
+          <div class="depth-meter">
+            <div id="depth-progress" class="depth-fill"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- アイテム発見ポップアップ（ゲーム中オーバーレイ） -->
+    <div id="item-popup" class="item-popup hidden">
+      <div class="item-found-label">発 見 ！</div>
+      <span id="popup-emoji" class="item-emoji"></span>
+      <span id="popup-name"  class="item-name"></span>
+      <span id="popup-desc"  class="item-desc"></span>
+      <span id="popup-rarity" class="item-rarity"></span>
+    </div>
+
+    <!-- ゲーム終了ボタン（右下固定） -->
+    <button id="btn-end-game" class="btn-end">⏹ 終了</button>
+
+  </div>
+
+
+  <!-- ════════════════════════════════════
+       結果画面
+  ════════════════════════════════════ -->
+  <div id="screen-result" class="screen">
+    <div class="result-content">
+
+      <h1 class="result-title">採掘終了！⛏️</h1>
+
+      <div class="result-stats">
+        <div class="result-stat">
+          <span class="result-label">最終深度</span>
+          <span id="result-depth" class="result-value">0m</span>
+        </div>
+        <div class="result-stat">
+          <span class="result-label">スクワット</span>
+          <span id="result-squats" class="result-value">0回</span>
+        </div>
+        <div class="result-stat">
+          <span class="result-label">スコア</span>
+          <span id="result-score" class="result-value">0</span>
+        </div>
+      </div>
+
+      <div class="items-found-list">
+        <h2>発見したアイテム</h2>
+        <div id="items-grid"></div>
+      </div>
+
+      <div class="name-entry">
+        <h3>ランキングに登録</h3>
+        <input
+          type="text"
+          id="player-name"
+          placeholder="名前を入力（10文字まで）"
+          maxlength="10"
+        />
+        <button id="btn-register" class="btn-primary">登録する</button>
+      </div>
+
+      <button id="btn-play-again" class="btn-secondary">🔄 もう一度掘る</button>
+
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════
+       ランキング画面
+  ════════════════════════════════════ -->
+  <div id="screen-ranking" class="screen">
+    <div class="ranking-content">
+
+      <h1>🏆 ランキング</h1>
+      <div id="ranking-list"></div>
+      <button id="btn-back-from-ranking" class="btn-secondary">← 戻る</button>
+
+    </div>
+  </div>
+
+
+  <!-- ES Module で game.js をロード（MediaPipe の動的 import が必要） -->
+  <script type="module" src="js/game.js"></script>
+
+</body>
+</html>
